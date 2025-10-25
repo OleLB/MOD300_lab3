@@ -1,35 +1,83 @@
+# This is our implementation of the walkers without using numpy
+import random
 from matplotlib import pyplot as plt
-import numpy as np
+
+class point:
+    def __init__(self, x=0.0, y=0.0, z=0.0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def set_point(self, x, y, z=0.0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def get_point(self):
+        return (self.x, self.y, self.z)
+
+    def add_point(self, other_point):
+        self.x += other_point.x
+        self.y += other_point.y
+        self.z += other_point.z
 
 
-steps_per_walker = 1000000
-walker_count = 5
+class walker:
+    def __init__(self, x=0.0, y=0.0, z=0.0):
+        self.position = point(x, y, z)
+        self.velocity = point()
+        self.past_positions = []
 
-# Generate random steps for each walker using numpy for efficiency
-step_range = (-1, 1)
-steps = np.random.uniform(step_range[0], step_range[1], (walker_count, steps_per_walker, 3))
-# steps is an array of 3 dimensions: (walker_count, iterations, 3)
+    def move(self, point_change: point):
+        self.past_positions.append(self.position.get_point())
+        self.position.add_point(point_change)
 
-# Cumulative sum along each walker's steps to get positions over time, adds each 'point' to previous
-positions = np.cumsum(steps, axis=1)
+    def get_position(self):
+        return self.position.get_point()
+    
 
-# Plotting the random walk
-# Source for plot code: https://stackoverflow.com/questions/11541123/how-can-i-make-a-3d-line-plot
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+def random_point(min_val=1, max_val=1):
+    x = random.uniform(min_val, max_val)
+    y = random.uniform(min_val, max_val)
+    z = random.uniform(min_val, max_val)
+    return point(x, y, z)
 
-colors = ['r', 'g', 'b', 'y', 'c', 'm']
 
-for i, w in enumerate(positions):
-    x_vals = w[:, 0]
-    y_vals = w[:, 1]
-    z_vals = w[:, 2]
+def gen_walkers(iterations, walker_count):
+    walkers = []
+    for i in range(walker_count):
+        w = walker()
+        for j in range(iterations):
+            step = random_point(-1, 1)
+            w.move(step)
+        walkers.append(w)
 
-    ax.plot(x_vals, y_vals, z_vals, color=colors[i % len(colors)], label=f'Walker {i+1}')
+    return walkers
 
-ax.set_xlabel('X Axis')
-ax.set_ylabel('Y Axis')
-ax.set_zlabel('Z Axis')
 
-plt.legend()
-plt.show()
+if __name__ == "__main__":
+    iterations = 10000
+    walker_count = 5
+
+    walkers = gen_walkers(iterations, walker_count)
+
+    # Plotting the random walk
+    # Source for plot code: https://stackoverflow.com/questions/11541123/how-can-i-make-a-3d-line-plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    colors = ['r', 'g', 'b', 'y', 'c', 'm']
+
+    for i, w in enumerate(walkers):
+        x_vals = [p[0] for p in w.past_positions]
+        y_vals = [p[1] for p in w.past_positions]
+        z_vals = [p[2] for p in w.past_positions]
+
+        ax.plot(x_vals, y_vals, z_vals, color=colors[i % len(colors)], label=f'Walker {i+1}')
+
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+
+    plt.legend()
+    plt.show()
