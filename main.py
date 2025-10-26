@@ -265,9 +265,9 @@ if __name__ == "__main__":
     for p in random_points:
         assert p.x > simulation_box_points["smallest_x"], "x coordinate not in simulation box"
         assert p.x < simulation_box_points["largest_x"], "x coordinate not in simulation box"
-        assert p.y > simulation_box_points["smallest_y"], "x coordinate not in simulation box"
+        assert p.y > simulation_box_points["smallest_y"], "y coordinate not in simulation box"
         assert p.x < simulation_box_points["largest_y"], "y coordinate not in simulation box"
-        assert p.z > simulation_box_points["smallest_z"], "x coordinate not in simulation box"
+        assert p.z > simulation_box_points["smallest_z"], "z coordinate not in simulation box"
         assert p.x < simulation_box_points["largest_z"], "z coordinate not in simulation box"
     print("Random coordinate assert passed")
 
