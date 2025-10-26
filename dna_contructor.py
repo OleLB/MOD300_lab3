@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import math
-from read_file import get_atoms 
+from main import get_atoms 
 
 atoms = get_atoms()
 
