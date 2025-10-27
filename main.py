@@ -71,6 +71,26 @@ class Sphere:
         volume = (4/3)*math.pi*self.rad**3
         return volume
 
+class SimulationBox:
+    """
+    Simulation box object
+    Contains the coordinate limits for a box in 3D space
+    """
+    def init(self, min_x, max_x, min_y, max_y, min_z, max_z):
+        self.min_x = min_x
+        self.max_x = max_x
+        self.min_y = min_y
+        self.max_y = max_y
+        self.min_z = min_z
+        self.max_z = max_z
+
+    def volume(self):
+        """Calculate the volume of the SimulationBox"""
+        x_dist = self.max_x - self.min_x
+        y_dist = self.max_y - self.min_y
+        z_dist = self.max_z - self.min_z
+
+        return x_dist, y_dist, z_dist
 
 # Task 0
 def gen_simulation_box(x, y, z):
@@ -147,7 +167,7 @@ def point_in_spheres(spheres_or_atoms, point):
     return False
 
 
-def get_atoms() -> list:
+def get_atoms() -> list[Atom]:
     """
     Reads a file of DNA data and creates atom objects
     ---
@@ -162,7 +182,7 @@ def get_atoms() -> list:
     return atom_list
 
 
-def get_dna_box(dna_atoms) -> dict:
+def get_dna_box(dna_atoms) -> dict[str, int]:
     """
     Finds the lowest and highest xyz values from the atom coordinates.
     ---
@@ -208,7 +228,7 @@ def get_dna_box(dna_atoms) -> dict:
 
 
 
-def gen_random_points(box_points: dict, number_of_points: int) -> list:
+def gen_random_points(box_points: dict, number_of_points: int) -> list[Point]:
     """
     Generates points randomly placed within the simulation box.
     ---
