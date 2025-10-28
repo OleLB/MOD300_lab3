@@ -1,5 +1,5 @@
-from matplotlib import pyplot as plt
 import math
+from matplotlib import pyplot as plt
 from main import get_atoms 
 
 atoms = get_atoms()
