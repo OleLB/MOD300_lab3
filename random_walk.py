@@ -78,7 +78,7 @@ def gen_walkers(iterations, walker_count, start_min=-100, start_max=100):
         start = random_point(start_min, start_max)
         walker = Walker(start.x, start.y, start.z)
         # testing random starting points
-        print(f"Walker {indx+1} start: {start.x}, {start.y}, {start.z}")
+        print(f"Walker {indx+1} start point: {start.x}, {start.y}, {start.z}")
         for _ in range(iterations):
             step = random_point(-1, 1)
             walker.move(step)
