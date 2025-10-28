@@ -23,7 +23,7 @@ class point:
 
 
 class walker:
-    def __init__(self, x=0.0, y=0.0, z=0.0):
+    def __init__(self, x=0, y=0, z=0):
         self.position = point(x, y, z)
         self.velocity = point()
         self.past_positions = []
@@ -43,10 +43,13 @@ def random_point(min_val=1, max_val=1):
     return point(x, y, z)
 
 
-def gen_walkers(iterations, walker_count):
+def gen_walkers(iterations, walker_count, start_min=-100, start_max=100):
     walkers = []
     for i in range(walker_count):
-        w = walker()
+        start = random_point(start_min, start_max)
+        w = walker(start.x, start.y, start.z)
+        # testing random starting points
+        print(f"Walker {i+1} start: {start.x}, {start.y}, {start.z}")
         for j in range(iterations):
             step = random_point(-1, 1)
             w.move(step)
