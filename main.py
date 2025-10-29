@@ -32,6 +32,18 @@ class Point:
         """Clean printing of point objects"""
         return f"x: {self.x}\ny: {self.y}\nz: {self.z}\n"
 
+    # Source for equality and hashing:
+    # https://stackoverflow.com/questions/1227121/compare-object-instances-for-equality-by-their-attributes
+    def __eq__(self, other):
+        """Check if two points are equal by comparing coordinates"""
+        if not isinstance(other, Point):
+            return False
+        return self.x == other.x and self.y == other.y and self.z == other.z
+
+    def __hash__(self):
+        """Allows Point objects to be used in sets and as dict keys"""
+        return hash((self.x, self.y, self.z))
+
 
 class Atom:
     """
@@ -44,6 +56,11 @@ class Atom:
         self.point = Point(x, y, z)
         self.rad = atom_properties[symbol][0]/100 # convert to angstrom units
         self.color = atom_properties[symbol][1]
+
+    def volume(self) -> float:
+        """Calculate the volume of the atom as a sphere"""
+        volume = (4/3)*math.pi*self.rad**3
+        return volume
 
     def __str__(self):
         return f'''
@@ -264,7 +281,307 @@ def plot_points_and_spheres(spheres_to_plot, points):
     plt.show()
 
 
+
+###########    Topic 2, task 1 and 2: Random Walkers     #################
+
+### Task 1
+
+class Walker:
+    """Walker object that moves in 3D space."""
+    def __init__(self, x=0.0, y=0.0, z=0.0, box=None, step_size=0):
+        self.position = Point(x, y, z)
+        self.past_positions = []
+        self.box = box
+        self.step_size = step_size
+
+    def move(self, point_change):
+        """
+        Move the walker by a point, with wrapping
+        """
+        self.past_positions.append(self.position)
+        new_pos = Point(
+            self.position.x + point_change.x,
+            self.position.y + point_change.y,
+            self.position.z + point_change.z
+        )
+
+        if self.box:
+            # Handle wrapping around the box boundaries if a box is defined
+            if new_pos.x > self.box.max_x:
+                new_pos.x = self.box.min_x + (new_pos.x % self.box.max_x)
+            elif new_pos.x < self.box.min_x:
+                new_pos.x = self.box.max_x - (self.box.min_x - new_pos.x) % self.box.max_x
+
+            if new_pos.y > self.box.max_y:
+                new_pos.y = self.box.min_y + (new_pos.y % self.box.max_y)
+            elif new_pos.y < self.box.min_y:
+                new_pos.y = self.box.max_y - (self.box.min_y - new_pos.y) % self.box.max_y
+
+            if new_pos.z > self.box.max_z:
+                new_pos.z = self.box.min_z + (new_pos.z % self.box.max_z)
+            elif new_pos.z < self.box.min_z:
+                new_pos.z = self.box.max_z - (self.box.min_z - new_pos.z) % self.box.max_z
+
+        # Adjusting to STEP_SIZE
+        if self.step_size > 0:
+            new_pos.x = round(new_pos.x / self.step_size) * self.step_size
+            new_pos.y = round(new_pos.y / self.step_size) * self.step_size
+            new_pos.z = round(new_pos.z / self.step_size) * self.step_size
+
+            # rounding to avoid floating point precision issues
+            new_pos = Point(
+                round(new_pos.x, 1),
+                round(new_pos.y, 1),
+                round(new_pos.z, 1)
+            )
+
+        self.position = new_pos
+
+    def set_new_position(self, point):
+        """
+        Set a new position for the walker
+        """
+        self.past_positions.append(self.position)
+        self.position = point
+
+
+def random_step(min_val=1, max_val=1):
+    """
+    Generate a random point in 3D space within given range
+    """
+    x = random.uniform(min_val, max_val)
+    y = random.uniform(min_val, max_val)
+    z = random.uniform(min_val, max_val)
+    return Point(x, y, z)
+
+
+def random_walk(iterations=10000, walker_count=5):
+    """
+    Generate a list of walkers and move them randomly
+    The plot contains some long straight lines because the walker is sent to the 
+        opposite side of the box when it hits a wall.
+    """
+    sim_box = gen_simulation_box(200, 200, 200)
+    walkers_list = []
+    for indx in range(walker_count):
+        start = gen_random_points(sim_box, 1)[0]
+        walker = Walker(start.x, start.y, start.z)
+        # testing random starting points
+        # print(f"Walker {indx+1} start point: {start.x}, {start.y}, {start.z}")
+        for _ in range(iterations):
+            step = random_step(-1, 1)
+            walker.move(step)
+        walkers_list.append(walker)
+    
+    # Plotting the random walk
+    # Source for plot code:
+    # https://stackoverflow.com/questions/11541123/how-can-i-make-a-3d-line-plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    colors = ['r', 'g', 'b', 'y', 'c', 'm']
+
+    for i, w in enumerate(walkers_list):
+        x_vals = [p.x for p in w.past_positions]
+        y_vals = [p.y for p in w.past_positions]
+        z_vals = [p.z for p in w.past_positions]
+
+        ax.plot(x_vals, y_vals, z_vals, color=colors[i % len(colors)], label=f'Walker {i+1}')
+
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+
+    plt.legend()
+    plt.show()
+
+
+### Task 2
+
+def random_walk_fast(steps_per_walker = 10000, walker_count = 5):
+    """walker function with a focus on efficient use of numpy"""
+
+    # Generate random steps for each walker using numpy for efficiency
+    step_range = (-1, 1)
+    steps = numpy.random.uniform(step_range[0], step_range[1], (walker_count, steps_per_walker, 3))
+    # steps is an array of 3 dimensions: (walker_count, iterations, 3)
+
+    # Cumulative sum along each walker's steps to get positions over time,
+    #   adds each 'point' to previous
+    positions = numpy.cumsum(steps, axis=1)
+
+    # Plotting
+    # Source for plot code:
+    # https://stackoverflow.com/questions/11541123/how-can-i-make-a-3d-line-plot
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    colors = ['r', 'g', 'b', 'y', 'c', 'm']
+
+    for i, w in enumerate(positions):
+        x_vals = w[:, 0]
+        y_vals = w[:, 1]
+        z_vals = w[:, 2]
+
+        ax.plot(x_vals, y_vals, z_vals, color=colors[i % len(colors)], label=f'Walker {i+1}')
+
+    ax.set_xlabel('X Axis')
+    ax.set_ylabel('Y Axis')
+    ax.set_zlabel('Z Axis')
+
+    plt.legend()
+    plt.show()
+
+
+
+
+
+
+
+###########    Topic 2, task 5: Surface area    #################
+
+STEP_SIZE = 0.2  # Angstroms
+
+def find_empty_position(box, spheres_to_avoid):
+    """
+    Find a random position in the box that is not inside any sphere.
+    Ensure the position's x, y, z values are multiples of STEP_SIZE.
+    """
+    while True:
+        point = gen_random_points(box, 1)[0]
+
+        # Adjusting to STEP_SIZE
+        point.x = round(point.x / STEP_SIZE) * STEP_SIZE
+        point.y = round(point.y / STEP_SIZE) * STEP_SIZE
+        point.z = round(point.z / STEP_SIZE) * STEP_SIZE
+
+        # rounding to avoid floating point precision issues
+        snapped_point = Point(
+            round(point.x, 1),
+            round(point.y, 1),
+            round(point.z, 1)
+        )
+        if not point_in_spheres(spheres_to_avoid, snapped_point):
+            # print("Found empty position:", snapped_point)
+            return snapped_point
+
+
+def spawn_walkers(count, box, spheres):
+    """
+    Spawn walkers at random empty positions in the box
+    """
+    walkers = []
+    for _ in range(count):
+        pos = find_empty_position(box, spheres)
+        walker = Walker(pos.x, pos.y, pos.z, box, STEP_SIZE)
+        walkers.append(walker)
+    return walkers
+
+
+def move_walker(walker, box, spheres, steps):
+    """
+    Move a walker randomly and check for surface hits
+    """
+    surface_blocks = set()
+    move_options = [
+        Point(STEP_SIZE, 0.0, 0.0), Point(-STEP_SIZE, 0.0, 0.0),
+        Point(0.0, STEP_SIZE, 0.0), Point(0.0, -STEP_SIZE, 0.0),
+        Point(0.0, 0.0, STEP_SIZE), Point(0.0, 0.0, -STEP_SIZE)
+    ]
+    for _ in range(steps):  
+        move_choice = random.choice(move_options)
+        walker.move(move_choice)
+
+        # Check if the walker is inside any sphere
+        if point_in_spheres(spheres, walker.position):
+            surface_blocks.add(walker.position)
+            # Move the walker to a new random position in the box
+            walker.set_new_position(find_empty_position(box, spheres))
+    return surface_blocks
+
+
+def make_deterministic_spheres():
+    """Create a set of deterministic spheres for testing."""
+    spheres_list = []
+    spheres_list.append(Sphere(Point(4.186925985859521, 4.15911461644369, 2.3552084360025116), 1.8887927910439066))
+    spheres_list.append(Sphere(Point(5.683792634079552, 5.5375850544203065, 5.247502976020097), 1.5296427088887965))
+    spheres_list.append(Sphere(Point(1.8917794544374336, 2.6501098749940146, 7.729438743292647), 1.813504604313081))
+    return spheres_list
+
+
+def estimate_surface_area(deterministic=True):
+    """This function estimates the total surface area of spheres using walkers"""
+    steps_per_walker = 3000
+    walker_count = 300
+    simulation_box = gen_simulation_box(10, 10, 10)
+
+    if deterministic:
+        spheres_list = make_deterministic_spheres()
+    else:
+        spheres_list = gen_spheres(simulation_box, 3)
+
+    # Calculate actual surface area
+    actual_surface_area = 0
+    for sph in spheres_list:
+        actual_surface_area += 4 * math.pi * (sph.rad ** 2)
+
+    # Spawn walkers
+    walker_list = spawn_walkers(walker_count, simulation_box, spheres_list)
+
+    # Move walkers and record surface hits
+    recorded_positions = set()
+    for w in walker_list:
+        surface_hits = move_walker(w, simulation_box, spheres_list, steps_per_walker)
+        recorded_positions.update(surface_hits)
+
+    # Get the past_positions of all walkers and remove duplicates
+    all_visited_positions = set()
+    for w in walker_list:
+        all_visited_positions.update(w.past_positions)
+
+    # Calculate estimated surface area
+    volume_covered = len(all_visited_positions) * STEP_SIZE**3
+    area_multiplier = 1 / STEP_SIZE
+    fraction_of_box_covered = volume_covered / simulation_box.volume()
+    fraction_of_surface_hits = len(recorded_positions) / len(all_visited_positions)
+
+    points = simulation_box.volume() / (STEP_SIZE**3)
+    estimated_surface_area_points = fraction_of_surface_hits * points
+    estimated_surface_area = estimated_surface_area_points * (STEP_SIZE**2) * area_multiplier
+
+    print("Fraction of box covered:", fraction_of_box_covered)
+    print("Surface area hits recorded:", len(recorded_positions))
+    print(f"Actual Surface Area: {actual_surface_area}")
+    print(f"Estimated Surface Area: {estimated_surface_area}")
+
+    # Plot the recorded positions
+    xs = [p.x for p in recorded_positions]
+    ys = [p.y for p in recorded_positions]
+    zs = [p.z for p in recorded_positions]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(xs, ys, zs, c='b', marker='o', label='Surface Hits')
+
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 10)
+    ax.set_zlim(0, 10)
+
+    ax.set_xlabel('X Label')
+    ax.set_ylabel('Y Label')
+    ax.set_zlabel('Z Label')
+    ax.legend()
+    plt.show()
+
+
+
+
+
 if __name__ == "__main__":
+
+    estimate_surface_area()
+
+    exit()
 
     # Verify that point subtraction works as expected
     print('-'*50+"Test point subtraction"+'-'*50)
