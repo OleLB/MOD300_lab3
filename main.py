@@ -638,7 +638,7 @@ class Tests(unittest.TestCase):
         self.assertIsInstance(get_atoms(), list)
 
 if __name__ == "__main__":
-    #unittest.main()
+    unittest.main()
     # Walker fast and slow
     #random_walk(iterations=5000, walker_count=5)
     #random_walk_fast(steps_per_walker=5000, walker_count=5)
