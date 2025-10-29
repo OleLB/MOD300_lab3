@@ -2,7 +2,8 @@
 import random
 import matplotlib.pyplot as plt
 import numpy
-from main import gen_spheres, gen_simulation_box, point_in_spheres, gen_random_points, Point
+from main import (gen_spheres, gen_simulation_box, point_in_spheres,
+    gen_random_points, get_atoms, get_dna_box, Point)
 
 class Walker:
     """Walker object that moves in 3D space."""
@@ -74,76 +75,97 @@ def gen_walkers(iterations, walker_count, walker_box):
     return walkers_list
 
 
-if __name__ == "__main__":
+def accessible_volume_simulation(walker_count, steps_per_walker, simulation_box, spheres):
+    """Run the accessible volume simulation."""
 
-    WALKER_COUNT = 5
-    STEPS = 10000
-
-    simulation_box = gen_simulation_box(10, 10, 10)
-
-    w = gen_walkers(STEPS, WALKER_COUNT, simulation_box)
-
-    spheres = gen_spheres(simulation_box, 10)
-
-    POINTS_IN_SPHERES = 0
+    w = gen_walkers(steps_per_walker, walker_count, simulation_box)
+    box_volume = simulation_box.volume()
+    points_in_spheres = 0
 
     for walkers in w:
         for past_position in walkers.past_positions:
-            POINTS_IN_SPHERES += point_in_spheres(spheres, past_position)
+            points_in_spheres += point_in_spheres(spheres, past_position)
 
-    TOTAL_POINTS = WALKER_COUNT * STEPS
-    FRACTION = POINTS_IN_SPHERES / TOTAL_POINTS
-    box_volume = simulation_box.volume()
-    sphere_volume_estimate = FRACTION * box_volume
+    total_points = walker_count * steps_per_walker
+    fraction = points_in_spheres / total_points
+    sphere_volume_estimate = fraction * box_volume
     print(f"Estimated volume of spheres: {sphere_volume_estimate}")
 
-    ACTUAL_SPHERE_VOLUME = 0
+    actual_sphere_volume = 0
     for sphere in spheres:
-        ACTUAL_SPHERE_VOLUME += sphere.volume()
+        actual_sphere_volume += sphere.volume()
 
-    print(f"Actual volume of spheres: {ACTUAL_SPHERE_VOLUME}")
-    box_volume = simulation_box.volume()
+    print(f"Actual volume of spheres: {actual_sphere_volume}")
     print(f"Box volume: {box_volume}")
-    accessible_volume = box_volume - sphere_volume_estimate
+    accessible_volume_estimate = box_volume - sphere_volume_estimate
     print("Estimated accessible volume: "
-          + f"(box volume - estimated volume of spheres) = {accessible_volume}")
+          + f"(box volume - estimated volume of spheres) = {accessible_volume_estimate}")
+
+    error = actual_sphere_volume - sphere_volume_estimate
+
+    return sphere_volume_estimate, error
 
     # Source code for 3d subplots:
     # https://matplotlib.org/stable/gallery/mplot3d/subplot3d.html
-    fig1 = plt.figure()
-    ax = fig1.add_subplot(111, projection='3d')
-    ax.set_title('Simulation of the spheres (no walkers)')
+    # fig1 = plt.figure()
+    # ax = fig1.add_subplot(111, projection='3d')
+    # ax.set_title('Simulation of the spheres (no walkers)')
 
-    # Taken from plot_points_in_spheres function in main.py
-    for sph in spheres:
-        theta = numpy.linspace(0, 2 * numpy.pi, 100)
-        phi = numpy.linspace(0, numpy.pi, 50)
-        theta, phi = numpy.meshgrid(theta, phi)
-        x_sph = sph.rad * numpy.sin(phi) * numpy.cos(theta) + sph.point.x
-        y_sph = sph.rad * numpy.sin(phi) * numpy.sin(theta) + sph.point.y
-        z_sph = sph.rad * numpy.cos(phi) + sph.point.z
-        ax.plot_surface(x_sph, y_sph, z_sph, cmap='viridis', alpha=0.8)
+    # # Taken from plot_points_in_spheres function in main.py
+    # for sph in spheres:
+    #     theta = numpy.linspace(0, 2 * numpy.pi, 100)
+    #     phi = numpy.linspace(0, numpy.pi, 50)
+    #     theta, phi = numpy.meshgrid(theta, phi)
+    #     x_sph = sph.rad * numpy.sin(phi) * numpy.cos(theta) + sph.point.x
+    #     y_sph = sph.rad * numpy.sin(phi) * numpy.sin(theta) + sph.point.y
+    #     z_sph = sph.rad * numpy.cos(phi) + sph.point.z
+    #     ax.plot_surface(x_sph, y_sph, z_sph, cmap='viridis', alpha=0.8)
 
-    ax.set_xlabel('X Axis')
-    ax.set_ylabel('Y Axis')
-    ax.set_zlabel('Z Axis')
+    # ax.set_xlabel('X Axis')
+    # ax.set_ylabel('Y Axis')
+    # ax.set_zlabel('Z Axis')
 
-    colors = ['r', 'g', 'b', 'y', 'c', 'm']
+    # colors = ['r', 'g', 'b', 'y', 'c', 'm']
 
-    fig2 = plt.figure()
-    ax = fig2.add_subplot(111, projection='3d')
-    ax.set_title('Walker paths')
+    # fig2 = plt.figure()
+    # ax = fig2.add_subplot(111, projection='3d')
+    # ax.set_title('Walker paths')
 
-    for i, w in enumerate(w):
-        x_vals = [p.x for p in w.past_positions]
-        y_vals = [p.y for p in w.past_positions]
-        z_vals = [p.z for p in w.past_positions]
+    # for i, w in enumerate(w):
+    #     x_vals = [p.x for p in w.past_positions]
+    #     y_vals = [p.y for p in w.past_positions]
+    #     z_vals = [p.z for p in w.past_positions]
 
-        ax.plot(x_vals, y_vals, z_vals, color=colors[i % len(colors)], label=f'Walker {i+1}')
+    #     ax.plot(x_vals, y_vals, z_vals, color=colors[i % len(colors)])  # label=f'Walker {i+1}'
 
-    ax.set_xlabel('X Axis')
-    ax.set_ylabel('Y Axis')
-    ax.set_zlabel('Z Axis')
+    # ax.set_xlabel('X Axis')
+    # ax.set_ylabel('Y Axis')
+    # ax.set_zlabel('Z Axis')
 
-    plt.legend()
-    plt.show()
+    # # plt.legend()
+    # plt.show()
+
+
+if __name__ == "__main__":
+
+    WALKER_COUNT = 250
+    STEPS = 100
+    results = []
+
+    # Spheres simulation
+    # SIM_BOX = gen_simulation_box(50, 100, 50)
+    # spheres = gen_spheres(SIM_BOX, 10)
+    # for i in range(5):
+    #     result, _ = accessible_volume_simulation(WALKER_COUNT, STEPS, SIM_BOX, spheres)
+    #     results.append(result)
+    # average = sum(results) / len(results)
+    # print(f"Average result over 5 runs: {average}")
+
+    # DNA simulation
+    atoms = get_atoms()
+    dna_box = get_dna_box(atoms)
+    for i in range(5):
+        result, _ = accessible_volume_simulation(WALKER_COUNT, STEPS, dna_box, atoms)
+        results.append(result)
+    average = sum(results) / len(results)
+    print(f"Average result over 5 runs: {average}")
