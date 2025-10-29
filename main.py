@@ -45,6 +45,11 @@ class Atom:
         self.rad = atom_properties[symbol][0]/100 # convert to angstrom units
         self.color = atom_properties[symbol][1]
 
+    def volume(self) -> float:
+        """Calculate the volume of the sphere"""
+        volume = (4/3)*math.pi*self.rad**3
+        return volume
+
     def __str__(self):
         return f'''
 Atomic symbol: {self.symbol}
@@ -52,6 +57,7 @@ Atomic radius: {self.rad} angstrom
 Position: 
 {self.point}
 '''
+    
 
 
 class Sphere:
