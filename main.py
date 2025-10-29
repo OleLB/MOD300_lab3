@@ -69,6 +69,7 @@ Atomic radius: {self.rad} angstrom
 Position: 
 {self.point}
 '''
+    
 
 
 class Sphere:
