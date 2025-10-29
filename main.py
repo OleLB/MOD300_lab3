@@ -1,6 +1,8 @@
 """Main .py file for MOD300 lab 3"""
 # angstrom: a unit of length equal to one hundred-millionth of a centimetre, 10−10metre
 # 1 angstrom is 100 pm (pictometer)
+import unittest
+
 import random
 import math
 import numpy
@@ -53,6 +55,7 @@ class Atom:
     """
     def __init__(self, symbol, x, y, z):
         self.symbol = symbol
+        assert symbol in atom_properties, f"Unknown atom symbol: {symbol}"
         self.point = Point(x, y, z)
         self.rad = atom_properties[symbol][0]/100 # convert to angstrom units
         self.color = atom_properties[symbol][1]
@@ -139,6 +142,8 @@ def gen_spheres(simulation_box, sphere_count) -> list[Sphere]:
     ---
     Returns a list of spheres
     """
+    assert sphere_count > 0, "Must generate at least one sphere"
+
     #! Currently it can generate overlapping spheres
     rand_spheres = []
     for _ in range(sphere_count):
@@ -168,18 +173,18 @@ def point_in_spheres(spheres_or_atoms, point):
     single_point = numpy.array([point.x, point.y, point.z])
 
     vectors = dna_coords - single_point     # the single point gets subtracted from all dna points
-    # print(f"vectors: {vectors[:5]}")
 
     magnitudes = numpy.linalg.norm(vectors, axis=1)
 
     # Compare each magnitude with the correct atomic radius
     for i,magnitude in enumerate(magnitudes):
+        assert magnitude >= 0, "Magnitude can't be lower than 0"
         if magnitude <= spheres_or_atoms[i].rad:
             in_sphere_counter += 1
     return in_sphere_counter
 
 
-def get_atoms() -> list:
+def get_atoms() -> list[Atom]:
     """
     Reads a file of DNA data and creates atom objects
     ---
@@ -246,6 +251,8 @@ def gen_random_points(box_points: SimulationBox, number_of_points: int, radius=0
     ---
     Return the points as a list.
     """
+    assert number_of_points > 0, "Number of points must be greater than 0."
+
     points = []
     for _ in range(number_of_points):
         x = random.uniform(box_points.min_x+radius, box_points.max_x-radius)
@@ -304,7 +311,7 @@ class Walker:
             self.position.y + point_change.y,
             self.position.z + point_change.z
         )
-
+        assert isinstance(new_pos, Point)
         if self.box:
             # Handle wrapping around the box boundaries if a box is defined
             if new_pos.x > self.box.max_x:
@@ -367,7 +374,6 @@ def random_walk(iterations=10000, walker_count=5):
         start = gen_random_points(sim_box, 1)[0]
         walker = Walker(start.x, start.y, start.z)
         # testing random starting points
-        # print(f"Walker {indx+1} start point: {start.x}, {start.y}, {start.z}")
         for _ in range(iterations):
             step = random_step(-1, 1)
             walker.move(step)
@@ -462,7 +468,6 @@ def find_empty_position(box, spheres_to_avoid):
             round(point.z, 1)
         )
         if not point_in_spheres(spheres_to_avoid, snapped_point):
-            # print("Found empty position:", snapped_point)
             return snapped_point
 
 
@@ -588,12 +593,52 @@ def estimate_surface_area(deterministic=True):
     ax.legend()
     plt.show()
 
+class Tests(unittest.TestCase):
+    """
+        Class for testing using unittest.TestCase as an interface. 
+    """
 
+    def test_point_subtraction_1(self):
+        """
+            Test that point subtraction works.
+        """
+        p1 = Point(x=2, y=0, z=3)
+        p2 = Point(x=4, y=2, z=3)
+        result = p1 - p2
 
+        self.assertEqual(result.x == -2, result.y == -2, result.z == 0)
 
+    def test_assert_gen_random_point(self):
+        """
+            Test that assert number_of_points >= 0 works. 
+        """
+        sim_box = SimulationBox(0, 10, 0, 10, 0, 10)
+        with self.assertRaises(AssertionError):
+            gen_random_points(sim_box, -1, 2)
+
+    def test_eq_gen_random_points(self):
+        """
+            Test that gen_random_points() returns the same amount 
+            of points as parameter 'number_of_points'.
+        """
+        sim_box = SimulationBox(0, 10, 0, 10, 0, 10)
+        self.assertEqual(10, len(gen_random_points(sim_box, 10)))
+
+    def test_assert_atom(self):
+        """
+            Test that assert dna_atoms works. 
+        """
+        with self.assertRaises(AssertionError):
+            _ = Atom(symbol="H20000000", x=0, y=0, z=0)
+
+    def test_get_atoms(self):
+        """
+            Test that get_atoms() returns a list.
+        """
+        self.assertIsInstance(get_atoms(), list)
 
 if __name__ == "__main__":
-
+    unittest.main()
     # Walker fast and slow
     # random_walk(iterations=5000, walker_count=5)
     # random_walk_fast(steps_per_walker=5000, walker_count=5)
@@ -601,56 +646,5 @@ if __name__ == "__main__":
     # Run the surface area estimation
     # estimate_surface_area()
 
-    # Verify that point subtraction works as expected
-    print('-'*50+"Test point subtraction"+'-'*50)
-    point1 = Point(5,2,1)
-    point2 = Point(2,2,2)
-    point3 = point1 - point2
-    test_point = Point(5-2,2-2,1-2)
-    assert (point3.x == test_point.x), "point subtraction failed"
-    assert (point3.y == test_point.y), "point subtraction failed"
-    assert (point3.z == test_point.z), "point subtraction failed"
-    print('Subtraction assert passed')
-
-    # Verify that simulation box is correctly created
-    print('-'*50+"Test simulation box generation"+'-'*50)
-    atoms = get_atoms()
-    print(atoms[0])
-    simulation_box_points = get_dna_box(atoms)
-    #print(simulation_box_points)
-    box_volume = simulation_box_points.volume()
-    assert box_volume == 26970, "Simulation box is not correct"
-    #print(f"Simulation box volume: {box_volume}")
-    print("Simulation box assert passed")
-
-    # Test point_in_spheres function
-    print('-'*50+"Test point_in_spheres function"+'-'*50)
-    fake_point = Point(1,1,1)  # not in dna
-    real_point = Point(-48, 1.74, -1.22) # in dna
-    assert not point_in_spheres(atoms, fake_point), "points_in_dna not working"
-    assert point_in_spheres(atoms, real_point), "points_in_dna not working"
-    print("point_in_spheres assert passed")
-
-
-    # Test random point generation
-    print('-'*50+"Test random point function"+'-'*50)
-    NUMBER_OF_POINTS = 10
-    random_points = gen_random_points(simulation_box_points, NUMBER_OF_POINTS)
-    assert len(random_points) == NUMBER_OF_POINTS
-    for p in random_points:
-        assert p.x > simulation_box_points.min_x, "x coordinate not in simulation box"
-        assert p.x < simulation_box_points.max_x, "x coordinate not in simulation box"
-        assert p.y > simulation_box_points.min_y, "y coordinate not in simulation box"
-        assert p.x < simulation_box_points.max_y, "y coordinate not in simulation box"
-        assert p.z > simulation_box_points.min_z, "z coordinate not in simulation box"
-        assert p.x < simulation_box_points.max_z, "z coordinate not in simulation box"
-    print("Random coordinate assert passed")
-
-
-    # Test gen spheres
-    print('-'*50+"Test random sphere function"+'-'*50)
-    spheres_list = gen_spheres(simulation_box_points, 3)
-    for s in spheres_list:
-        print(s)
-
     # plot_points_and_spheres(atoms[:20], [])
+    # remove unittest.main() and comments above to check the estimation code.
