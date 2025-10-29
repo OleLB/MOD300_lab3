@@ -638,13 +638,14 @@ class Tests(unittest.TestCase):
         self.assertIsInstance(get_atoms(), list)
 
 if __name__ == "__main__":
-    unittest.main()
+    #unittest.main()
     # Walker fast and slow
-    # random_walk(iterations=5000, walker_count=5)
-    # random_walk_fast(steps_per_walker=5000, walker_count=5)
+    #random_walk(iterations=5000, walker_count=5)
+    #random_walk_fast(steps_per_walker=5000, walker_count=5)
 
     # Run the surface area estimation
-    # estimate_surface_area()
+    #estimate_surface_area()
 
-    # plot_points_and_spheres(atoms[:20], [])
+    #atoms = get_atoms()
+    #plot_points_and_spheres(atoms[:20], [])
     # remove unittest.main() and comments above to check the estimation code.
