@@ -69,7 +69,6 @@ Atomic radius: {self.rad} angstrom
 Position: 
 {self.point}
 '''
-    
 
 
 class Sphere:
@@ -364,7 +363,7 @@ def random_walk(iterations=10000, walker_count=5):
     """
     sim_box = gen_simulation_box(200, 200, 200)
     walkers_list = []
-    for indx in range(walker_count):
+    for _ in range(walker_count):
         start = gen_random_points(sim_box, 1)[0]
         walker = Walker(start.x, start.y, start.z)
         # testing random starting points
@@ -373,7 +372,7 @@ def random_walk(iterations=10000, walker_count=5):
             step = random_step(-1, 1)
             walker.move(step)
         walkers_list.append(walker)
-    
+
     # Plotting the random walk
     # Source for plot code:
     # https://stackoverflow.com/questions/11541123/how-can-i-make-a-3d-line-plot
@@ -489,7 +488,7 @@ def move_walker(walker, box, spheres, steps):
         Point(0.0, STEP_SIZE, 0.0), Point(0.0, -STEP_SIZE, 0.0),
         Point(0.0, 0.0, STEP_SIZE), Point(0.0, 0.0, -STEP_SIZE)
     ]
-    for _ in range(steps):  
+    for _ in range(steps):
         move_choice = random.choice(move_options)
         walker.move(move_choice)
 
@@ -503,11 +502,26 @@ def move_walker(walker, box, spheres, steps):
 
 def make_deterministic_spheres():
     """Create a set of deterministic spheres for testing."""
-    spheres_list = []
-    spheres_list.append(Sphere(Point(4.186925985859521, 4.15911461644369, 2.3552084360025116), 1.8887927910439066))
-    spheres_list.append(Sphere(Point(5.683792634079552, 5.5375850544203065, 5.247502976020097), 1.5296427088887965))
-    spheres_list.append(Sphere(Point(1.8917794544374336, 2.6501098749940146, 7.729438743292647), 1.813504604313081))
-    return spheres_list
+    spheres = []
+    spheres.append(
+        Sphere(
+            Point(4.186925985859521, 4.15911461644369, 2.3552084360025116),
+            1.8887927910439066
+        )
+    )
+    spheres.append(
+        Sphere(
+            Point(5.683792634079552, 5.5375850544203065, 5.247502976020097),
+            1.5296427088887965
+        )
+    )
+    spheres.append(
+        Sphere(
+            Point(1.8917794544374336, 2.6501098749940146, 7.729438743292647),
+            1.813504604313081
+        )
+    )
+    return spheres
 
 
 def estimate_surface_area(deterministic=True):
@@ -517,22 +531,22 @@ def estimate_surface_area(deterministic=True):
     simulation_box = gen_simulation_box(10, 10, 10)
 
     if deterministic:
-        spheres_list = make_deterministic_spheres()
+        spheres = make_deterministic_spheres()
     else:
-        spheres_list = gen_spheres(simulation_box, 3)
+        spheres = gen_spheres(simulation_box, 3)
 
     # Calculate actual surface area
     actual_surface_area = 0
-    for sph in spheres_list:
+    for sph in spheres:
         actual_surface_area += 4 * math.pi * (sph.rad ** 2)
 
     # Spawn walkers
-    walker_list = spawn_walkers(walker_count, simulation_box, spheres_list)
+    walker_list = spawn_walkers(walker_count, simulation_box, spheres)
 
     # Move walkers and record surface hits
     recorded_positions = set()
     for w in walker_list:
-        surface_hits = move_walker(w, simulation_box, spheres_list, steps_per_walker)
+        surface_hits = move_walker(w, simulation_box, spheres, steps_per_walker)
         recorded_positions.update(surface_hits)
 
     # Get the past_positions of all walkers and remove duplicates
@@ -580,9 +594,12 @@ def estimate_surface_area(deterministic=True):
 
 if __name__ == "__main__":
 
-    estimate_surface_area()
+    # Walker fast and slow
+    # random_walk(iterations=5000, walker_count=5)
+    # random_walk_fast(steps_per_walker=5000, walker_count=5)
 
-    exit()
+    # Run the surface area estimation
+    # estimate_surface_area()
 
     # Verify that point subtraction works as expected
     print('-'*50+"Test point subtraction"+'-'*50)
@@ -632,8 +649,8 @@ if __name__ == "__main__":
 
     # Test gen spheres
     print('-'*50+"Test random sphere function"+'-'*50)
-    spheres = gen_spheres(simulation_box_points, 3)
-    for s in spheres:
+    spheres_list = gen_spheres(simulation_box_points, 3)
+    for s in spheres_list:
         print(s)
 
     # plot_points_and_spheres(atoms[:20], [])
